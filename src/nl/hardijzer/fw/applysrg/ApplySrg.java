@@ -51,23 +51,52 @@ class ClassInfo {
 class MyRemapper extends Remapper {
 	public Map<String,MappedClass> mapClasses;
 	public Map<String,ClassInfo> mapClassInfo;
+	public Map<String,String> mapPackages;
 	
-	public MyRemapper(Map<String,MappedClass> mapClasses, Map<String,ClassInfo> mapInheritance) {
+	public MyRemapper(Map<String,MappedClass> mapClasses, Map<String,ClassInfo> mapInheritance, Map<String,String> mapPackages) {
 		super();
 		this.mapClasses=mapClasses;
 		this.mapClassInfo=mapInheritance;
+		this.mapPackages=mapPackages;
+	}
+	
+	public String mapPackage(String strPackage) {
+		String strMapped=mapPackages.get(strPackage);
+		if (strMapped!=null)
+			return strMapped;
+		if (strPackage.equals("."))
+			return strPackage;
+		int nSplit=strPackage.lastIndexOf('/');
+		String strUp=".";
+		if (nSplit!=-1) {
+			strUp=strPackage.substring(0,nSplit);
+			strPackage=strPackage.substring(nSplit+1);
+		}
+		String strUpMapped=mapPackage(strUp);
+		if (strUpMapped.equals("."))
+			return strPackage;
+		return strUpMapped+"/"+strPackage;
 	}
 	
 	@Override
 	public String map(String typeName) {
 		MappedClass other=mapClasses.get(typeName);
-		//if (other!=null && !other.strNewName.equals(typeName))
-		//	System.out.println("Mapping class "+typeName+" to "+other.strNewName);
 		if (other!=null)
 			return other.strNewName;
-		if (typeName.indexOf('/')==-1)
-			return "net/minecraft/server/"+typeName;
-		return typeName;
+		int nSplit=typeName.lastIndexOf('$');
+		if (nSplit!=-1) {
+			return map(typeName.substring(0,nSplit))+typeName.substring(nSplit);
+		}
+		String strPackage=".";
+		nSplit=typeName.lastIndexOf('/');
+		if (nSplit!=-1) {
+			strPackage=typeName.substring(0,nSplit);
+			typeName=typeName.substring(nSplit+1);
+		}
+		String strPackageMapped=mapPackage(strPackage);
+		if (strPackageMapped.equals("."))
+			return typeName;
+		return strPackageMapped+"/"+typeName;
 	}
 	
 	public String mapMethodNameDirect(String owner, Method m) {
@@ -94,6 +123,7 @@ class MyRemapper extends Remapper {
 		return null;
 	}
 	
+	//Method can point to a method up the chain, but also further up the chain, so returns the first owner with a mapping associated.
 	public String locateMethod(String owner, Method m) {
 		Queue<String> q=new LinkedList<String>();
 		q.add(owner);
@@ -110,6 +140,17 @@ class MyRemapper extends Remapper {
 		return null;
 	}
 	
+	@Override
+	public String mapMethodName(String owner, String name, String desc) {
+		Method m=new Method(name,desc);
+		String strActualOwner=locateMethod(owner,m);
+		//if (strActualOwner!=null)
+		//	System.out.println("Tracked method "+owner+"/"+name+" "+desc+" to "+strActualOwner);
+		String strMapped=mapMethodNameDirect((strActualOwner!=null)?strActualOwner:owner,m);
+		return (strMapped==null)?name:strMapped;
+	}
+	
+	//Field always maps to the first field found up the chain.
 	public String locateField(String owner, String f) {
 		Queue<String> q=new LinkedList<String>();
 		q.add(owner);
@@ -120,23 +161,10 @@ class MyRemapper extends Remapper {
 				continue;
 			for (String inherit : info.setInheritance)
 				q.add(inherit);
-			if (mapClasses.containsKey(strOwner) && info.setFields.contains(f))
+			if (info.setFields.contains(f))
 				return strOwner;
 		}
 		return null;
-	}
-	
-	@Override
-	public String mapMethodName(String owner, String name, String desc) {
-		if (owner.equals("railcraft/common/carts/EntityCartTNT") && name.equals("c") && desc.equals("()I")) {
-			System.out.println("mapMethodName: "+owner+" "+name+" "+desc);
-		}
-		Method m=new Method(name,desc);
-		String strActualOwner=locateMethod(owner,m);
-		//if (strActualOwner!=null)
-		//	System.out.println("Tracked method "+owner+"/"+name+" "+desc+" to "+strActualOwner);
-		String strMapped=mapMethodNameDirect((strActualOwner!=null)?strActualOwner:owner,m);
-		return (strMapped==null)?name:strMapped;
 	}
 	
 	@Override
@@ -160,7 +188,6 @@ class InheritanceMapClassVisitor implements ClassVisitor {
 	
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-		System.out.println(name+":");
 		this.strName=name;
 		this.info.setInheritance.add(superName);
 		for (int i=0; i<interfaces.length; i++)
@@ -227,14 +254,11 @@ public class ApplySrg {
 		String strOutputFilename=null;
 		List<String> listInputSrg=new LinkedList<String>();
 		List<String> listInputInheritance=new LinkedList<String>();
-		String strOrphanPackage="";
 		for (int i=0; i<args.length; i++) {
 			if (args[i].equals("--srg"))
 				listInputSrg.add(args[++i]);
 			else if (args[i].equals("--inheritance"))
 				listInputInheritance.add(args[++i]);
-			else if (args[i].equals("--orphanpackage"))
-				strOrphanPackage=args[++i];
 			else if (args[i].equals("--in"))
 				strInputFilename=args[++i];
 			else if (args[i].equals("--out"))
@@ -245,13 +269,13 @@ public class ApplySrg {
 			System.err.println("Options:");
 			System.err.println("--srg <srg file>\tLoads the SRG file");
 			System.err.println("--inheritance <jar/zip>\tLoads inheritance map from jar");
-			System.err.println("--orphanpackage <package name>\tPuts all orphan classes into this package");
 			System.err.println("--in <jar/zip>");
 			System.err.println("--out <jar/zip>");
 			return;
 		}
 		
 		Map<String,MappedClass> mapClasses=new TreeMap<String,MappedClass>();
+		Map<String, String> mapPackages=new TreeMap<String,String>();
 		for (String srg : listInputSrg) {
 			System.out.println("Reading SRG: "+srg);
 			BufferedReader brSrg = new BufferedReader(new FileReader(srg));
@@ -259,7 +283,7 @@ public class ApplySrg {
 			while ((strLine=brSrg.readLine())!=null) {
 				String arrLine[]=strLine.split(" ");
 				if (arrLine[0].equals("PK:")) {
-					//Ignore package specification
+					mapPackages.put(arrLine[1], arrLine[2]);
 				} else if (arrLine[0].equals("CL:")) {
 					String strFrom=arrLine[1];
 					String strTo=arrLine[2];
@@ -291,6 +315,8 @@ public class ApplySrg {
 					}
 					if (mappedCurrent==null || !mappedCurrent.strNewName.equals(strToClass)) {
 						System.err.println("ERROR: Class mapping invalid or non-existant on field");
+						System.err.println("Line: "+strLine);
+						System.err.println(strFromClass+" -> "+strToClass+" should have been "+((mappedCurrent==null)?"null":mappedCurrent.strNewName));
 						return;
 					}
 					mappedCurrent.mapFields.put(strFrom,strTo);
@@ -325,7 +351,7 @@ public class ApplySrg {
 		System.out.println("Class map loaded of "+mapClasses.size()+" classes");
 		Map<String,ClassInfo> mapClassInheritance=new HashMap<String,ClassInfo>();
 		for (String inherit : listInputInheritance) {
-			System.out.println("Parsing inheritance in "+inherit);
+			//System.out.println("Parsing inheritance in "+inherit);
 			ZipFile zipInherit=new ZipFile(inherit);
 			Enumeration<? extends ZipEntry> entries=zipInherit.entries();
 			while (entries.hasMoreElements()) {
@@ -354,12 +380,15 @@ public class ApplySrg {
 			if (entry.getName().endsWith(".class")) {
 				ClassReader cr=new ClassReader(zipInput.getInputStream(entry));
 				ClassWriter cw=new ClassWriter(0);
-				Remapper remapper=new MyRemapper(mapClasses,mapClassInheritance);
+				Remapper remapper=new MyRemapper(mapClasses,mapClassInheritance,mapPackages);
 				RemappingClassAdapter ca=new RemappingClassAdapter(cw,remapper);
 				cr.accept(ca,ClassReader.EXPAND_FRAMES);
 				byte[] bOutput=cw.toByteArray();
+				String strName=entry.getName();
+				strName=strName.substring(0,strName.lastIndexOf('.'));
+				strName=remapper.mapType(strName);
 				
-				ZipEntry entryCopy=new ZipEntry((entry.getName().indexOf('/')==-1?strOrphanPackage:"")+entry.getName());
+				ZipEntry entryCopy=new ZipEntry(strName+".class");
 				entryCopy.setCompressedSize(-1);
 				entryCopy.setSize(bOutput.length);
 				zipOutput.putNextEntry(entryCopy);

@@ -28,9 +28,7 @@ public class ReverseSrg {
 		while ((line=brSrg.readLine())!=null) {
 			String[] lineParts=line.split(" ");
 			String tmp;
-			if (lineParts[0].equals("PK:")) {
-				//Package, ignoring for now. We're not actually using that anywhere
-			} else if (lineParts[0].equals("CL:") || lineParts[0].equals("FD:")) {
+			if (lineParts[0].equals("PK:") || lineParts[0].equals("CL:") || lineParts[0].equals("FD:")) {
 				tmp=lineParts[1];
 				lineParts[1]=lineParts[2];
 				lineParts[2]=tmp;
