@@ -243,6 +243,16 @@ class InheritanceMapClassVisitor implements ClassVisitor {
 	
 }
 
+class ParseEntry {
+	String strInputFilename;
+	String strOutputFilename;
+	
+	public ParseEntry(String a, String b) {
+		strInputFilename=a;
+		strOutputFilename=b;
+	}
+};
+
 public class ApplySrg {
 
 	/**
@@ -254,6 +264,7 @@ public class ApplySrg {
 		String strOutputFilename=null;
 		List<String> listInputSrg=new LinkedList<String>();
 		List<String> listInputInheritance=new LinkedList<String>();
+		List<ParseEntry> listTranslate=new LinkedList<ParseEntry>();
 		for (int i=0; i<args.length; i++) {
 			if (args[i].equals("--srg"))
 				listInputSrg.add(args[++i]);
@@ -263,8 +274,18 @@ public class ApplySrg {
 				strInputFilename=args[++i];
 			else if (args[i].equals("--out"))
 				strOutputFilename=args[++i];
+			else if (args[i].equals("--translate")) {
+				String a=args[++i];
+				String b=args[++i];
+				listTranslate.add(new ParseEntry(a,b));
+				listInputInheritance.add(a);
+			}
 		}
-		if (strInputFilename==null || strOutputFilename==null) {
+		if (strInputFilename!=null && strOutputFilename!=null) {
+			listTranslate.add(new ParseEntry(strInputFilename,strOutputFilename));
+			strInputFilename=strOutputFilename=null;
+		}
+		if (strInputFilename!=null || strOutputFilename!=null || listTranslate.size()<1) {
 			System.err.println("Usage: java -jar ApplySrg.jar [options]");
 			System.err.println("Options:");
 			System.err.println("--srg <srg file>\tLoads the SRG file");
@@ -351,6 +372,7 @@ public class ApplySrg {
 		System.out.println("Class map loaded of "+mapClasses.size()+" classes");
 		Map<String,ClassInfo> mapClassInheritance=new HashMap<String,ClassInfo>();
 		for (String inherit : listInputInheritance) {
+			System.out.println("Parsing inheritance in "+inherit);
 			//System.out.println("Parsing inheritance in "+inherit);
 			ZipFile zipInherit=new ZipFile(inherit);
 			Enumeration<? extends ZipEntry> entries=zipInherit.entries();
@@ -368,46 +390,50 @@ public class ApplySrg {
 			zipInherit.close();
 		}
 		System.out.println("Inheritance map loaded of "+mapClassInheritance.size()+" classes");
-
-		ZipFile zipInput=new ZipFile(strInputFilename);
 		
-		ZipOutputStream zipOutput=new ZipOutputStream(new FileOutputStream(strOutputFilename));
-		Enumeration<? extends ZipEntry> entries=zipInput.entries();
-		while (entries.hasMoreElements()) {
-			ZipEntry entry=entries.nextElement();
-			if (entry.isDirectory())
-				continue;
-			if (entry.getName().endsWith(".class")) {
-				ClassReader cr=new ClassReader(zipInput.getInputStream(entry));
-				ClassWriter cw=new ClassWriter(0);
-				Remapper remapper=new MyRemapper(mapClasses,mapClassInheritance,mapPackages);
-				RemappingClassAdapter ca=new RemappingClassAdapter(cw,remapper);
-				cr.accept(ca,ClassReader.EXPAND_FRAMES);
-				byte[] bOutput=cw.toByteArray();
-				String strName=entry.getName();
-				strName=strName.substring(0,strName.lastIndexOf('.'));
-				strName=remapper.mapType(strName);
-				
-				ZipEntry entryCopy=new ZipEntry(strName+".class");
-				entryCopy.setCompressedSize(-1);
-				entryCopy.setSize(bOutput.length);
-				zipOutput.putNextEntry(entryCopy);
-				zipOutput.write(bOutput);
-				zipOutput.closeEntry();
-			} else {
-				ZipEntry entryCopy=new ZipEntry(entry);
-				entryCopy.setCompressedSize(-1);
-				zipOutput.putNextEntry(entryCopy);
-				InputStream is=zipInput.getInputStream(entry);
-				byte[] buffer=new byte[1024];
-				int read=0;
-				while ((read=is.read(buffer))!=-1)
-					zipOutput.write(buffer,0,read);
-				zipOutput.closeEntry();
+		for (ParseEntry e : listTranslate) {
+			System.out.println("Translating "+e.strInputFilename+" -> "+e.strOutputFilename);
+	
+			ZipFile zipInput=new ZipFile(e.strInputFilename);
+			
+			ZipOutputStream zipOutput=new ZipOutputStream(new FileOutputStream(e.strOutputFilename));
+			Enumeration<? extends ZipEntry> entries=zipInput.entries();
+			while (entries.hasMoreElements()) {
+				ZipEntry entry=entries.nextElement();
+				if (entry.isDirectory())
+					continue;
+				if (entry.getName().endsWith(".class")) {
+					ClassReader cr=new ClassReader(zipInput.getInputStream(entry));
+					ClassWriter cw=new ClassWriter(0);
+					Remapper remapper=new MyRemapper(mapClasses,mapClassInheritance,mapPackages);
+					RemappingClassAdapter ca=new RemappingClassAdapter(cw,remapper);
+					cr.accept(ca,ClassReader.EXPAND_FRAMES);
+					byte[] bOutput=cw.toByteArray();
+					String strName=entry.getName();
+					strName=strName.substring(0,strName.lastIndexOf('.'));
+					strName=remapper.mapType(strName);
+					
+					ZipEntry entryCopy=new ZipEntry(strName+".class");
+					entryCopy.setCompressedSize(-1);
+					entryCopy.setSize(bOutput.length);
+					zipOutput.putNextEntry(entryCopy);
+					zipOutput.write(bOutput);
+					zipOutput.closeEntry();
+				} else {
+					ZipEntry entryCopy=new ZipEntry(entry);
+					entryCopy.setCompressedSize(-1);
+					zipOutput.putNextEntry(entryCopy);
+					InputStream is=zipInput.getInputStream(entry);
+					byte[] buffer=new byte[1024];
+					int read=0;
+					while ((read=is.read(buffer))!=-1)
+						zipOutput.write(buffer,0,read);
+					zipOutput.closeEntry();
+				}
 			}
+			zipInput.close();
+			zipOutput.close();
 		}
-		zipInput.close();
-		zipOutput.close();
 		System.out.println("Done!");
 	}
 
