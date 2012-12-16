@@ -304,7 +304,7 @@ public class ApplySrg {
 			strInputFilename=strOutputFilename=null;
 		}
 		if (strInputFilename!=null || strOutputFilename!=null || listTranslate.size()<1) {
-			System.err.println("Usage: java -jar ApplySrg.jar [options]");
+			System.err.println("Usage: java -jar srgtool.jar apply [options]");
 			System.err.println("Options:");
 			System.err.println("--srg <srg file>\tLoads the SRG file");
 			System.err.println("--inheritance <jar/zip>\tLoads inheritance map from jar");

@@ -148,7 +148,7 @@ public class SrgCollisions {
 				System.err.println("Unknown option: "+args[i]);
 		}
 		if (strInputSrg==null || strInputJar==null) {
-			System.err.println("Usage: ...");
+			System.err.println("Usage: java -jar srgtool.jar collisions --srg file.srg --in file.jar");
 			return;
 		}
 		Map<String,MappedClass> mapClasses=new TreeMap<String,MappedClass>();

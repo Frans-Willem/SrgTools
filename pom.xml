@@ -4,7 +4,7 @@
   <groupId>org.bukkit</groupId>
   <artifactId>srgtool</artifactId>
   <packaging>jar</packaging>
-  <version>1.0</version>
+  <version>2.0</version>
   <name>SrgTool</name>
   <url>https://github.com/agaricusb/SrgTools</url>
 
@@ -79,7 +79,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Main-Class>nl.hardijzer.fw.applysrg.ApplySrg</Main-Class>
+              <Main-Class>nl.hardijzer.fw.SrgTool</Main-Class>
               <Implementation-Title>SrgTool</Implementation-Title>
               <Implementation-Version>${describe}</Implementation-Version>
               <Sealed>true</Sealed>

@@ -49,7 +49,7 @@ public class IntegrateMcpSrg {
 	 */
 	public static void main(String[] args) throws IOException {
 		if (args.length<4) {
-			System.err.println("Usage: java -jar IntegrateMcpSrg.jar <server/client.srg> <fields.csv> <methods.csv> <side:client=0,server=1>");
+			System.err.println("Usage: java -jar srgtool.jar integratemcp <server/client.srg> <fields.csv> <methods.csv> <side:client=0,server=1>");
 			return;
 		}
 		int nSide=Integer.parseInt(args[3]);
