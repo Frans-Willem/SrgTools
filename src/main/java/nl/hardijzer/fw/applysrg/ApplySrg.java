@@ -382,7 +382,9 @@ public class ApplySrg {
 						mapClasses.put(strFromClass,mappedCurrent=new MappedClass(strToClass));
 					}
 					if (mappedCurrent==null || !mappedCurrent.strNewName.equals(strToClass)) {
-						System.err.println("ERROR: Class mapping invalid or non-existant on field");
+						System.err.println("ERROR: Class mapping invalid or non-existant on method");
+						System.err.println("Line: "+strLine);
+						System.err.println(strFromClass+" -> "+strToClass+" should have been "+((mappedCurrent==null)?"null":mappedCurrent.strNewName));
 						return;
 					}
 					//NOTE: arguments not saved, will be mapped automagically.
