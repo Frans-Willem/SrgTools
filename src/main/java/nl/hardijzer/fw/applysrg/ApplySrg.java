@@ -286,7 +286,7 @@ public class ApplySrg {
 		for (int i=0; i<args.length; i++) {
 			if (args[i].equals("--srg"))
 				listInputSrg.add(args[++i]);
-			else if (args[i].equals("--inheritance"))
+			else if (args[i].equals("--inheritance") || args[i].equals("--inh"))
 				listInputInheritance.add(args[++i]);
 			else if (args[i].equals("--in"))
 				strInputFilename=args[++i];
@@ -312,6 +312,9 @@ public class ApplySrg {
 			System.err.println("--out <jar/zip>");
 			return;
 		}
+
+        if (strInputFilename!=null) 
+            listInputInheritance.add(strInputFilename);
 		
 		Map<String,MappedClass> mapClasses=new TreeMap<String,MappedClass>();
 		Map<String, String> mapPackages=new TreeMap<String,String>();
@@ -341,7 +344,7 @@ public class ApplySrg {
 					int nSplitFrom=strFrom.lastIndexOf('/');
 					int nSplitTo=strTo.lastIndexOf('/');
 					if (nSplitFrom==-1 || nSplitTo==-1) {
-						System.err.println("ERROR: Invalid field specification");
+						System.err.println("ERROR: Invalid field specification: '" + strLine);
 						return;
 					}
 					String strFromClass=strFrom.substring(0,nSplitFrom);
@@ -367,7 +370,7 @@ public class ApplySrg {
 					int nSplitFrom=strFrom.lastIndexOf('/');
 					int nSplitTo=strTo.lastIndexOf('/');
 					if (nSplitFrom==-1 || nSplitTo==-1) {
-						System.err.println("ERROR: Invalid field specification");
+						System.err.println("ERROR: Invalid method specification: '" + strLine);
 						return;
 					}
 					String strFromClass=strFrom.substring(0,nSplitFrom);
