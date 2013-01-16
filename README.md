@@ -11,6 +11,9 @@ For usage, run with no arguments.
 To build from source, run: mvn package
 
 ## Examples
+Porting an NMS plugin to MCPC+:
+
+    java -jar srgtool.jar apply --srg vcb2obf.srg --in plugin.jar --inheritance plugin.jar --out plugin2.jar
 
 Porting a mod to MCPC:
 
@@ -19,10 +22,6 @@ Porting a mod to MCPC:
 Reobfuscating a mod compiled with MCP (alternative to RetroGuard/reobfuscate.sh):
 
     java -jar srgtool.jar apply --srg mcp2obf.srg --in compiledmod.jar --inheritance compiledmod.jar --out obfuscatedmod.jar
-
-Porting an NMS plugin to CPCM:
-
-    java -jar srgtool.jar apply --srg cb2obf.srg --in plugin.jar --inheritance plugin.jar --out plugin2.jar
 
 Deobfuscating to MCP:
 
