@@ -120,6 +120,11 @@ public class CheckAbstract {
 	}
 	
 	public static void main(String[] args) throws IOException {
+        if (args.length == 0) {
+            System.out.println("java -jar srgtool.jar checkabstract --parse file.jar --check file.jar");
+            return;
+        }
+
 		List<String> listInput=new LinkedList<String>();
 		Set<String> setOutput=new TreeSet<String>();
 		for (int i=0; i<args.length; i++)

@@ -140,6 +140,10 @@ public class ChainSrg {
 	 */
 	public static void main(String[] args) throws IOException {
 		Map<String,MappedClass> mapClasses=new TreeMap<String,MappedClass>();
+        if (args.length == 0) {
+            System.out.println("Usage: java -jar srgtool.jar chain file1.srg file2.srg...");
+            return;
+        }
 		for (int i=0; i<args.length; i++) {
 			Map<String,MappedClass> mapClassesCurrent=new TreeMap<String,MappedClass>();
 			BufferedReader brSrg=new BufferedReader(new InputStreamReader(new FileInputStream(args[i])));

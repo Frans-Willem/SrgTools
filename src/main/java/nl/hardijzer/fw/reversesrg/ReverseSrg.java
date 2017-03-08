@@ -38,7 +38,7 @@ public class ReverseSrg {
 	 */
 	public static void main(String[] args) throws IOException {
 		if (args.length<1) {
-			System.err.println("Usage: java -classpath SrgTools.jar ReverseSrg <srg file>");
+			System.err.println("Usage: java -jar srgtool.jar reverse <srg file>");
 			return;
 		}
 		BufferedReader brSrg=new BufferedReader(new InputStreamReader(new FileInputStream(args[0])));

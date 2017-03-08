@@ -302,7 +302,7 @@ public class JarCompare {
 	 */
 	public static void main(String[] args) throws IOException {
 		if (args.length<2) {
-			System.err.println("Usage: java -jar JarCompare.jar <from.jar> <to.jar>");
+			System.err.println("Usage: java -jar srgtool jarcompare <from.jar> <to.jar>");
 			return;
 		}
 		JarFile jarFirst=new JarFile(args[0]);
